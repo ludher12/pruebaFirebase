@@ -9,7 +9,7 @@ namespace pruebaFirebase.Controllers
     {
         private readonly Models.ApplicationDbContext _context;
         private readonly IFilesHelper _filesHelper;
-
+        private const string rutaFotosPerfil = "Fotos_Perfil";
         public PeliculaController(Models.ApplicationDbContext context, IFilesHelper filesHelper)
         {
             _context = context;
@@ -34,7 +34,7 @@ namespace pruebaFirebase.Controllers
 
                 Stream image = Imagen.OpenReadStream();
                 //llamamos a nuestra interfaz para subir el archivo
-                string urlimagen = await _filesHelper.SubirArchivo(image, Imagen.FileName);
+                string urlimagen = await _filesHelper.SubirArchivo(image, Imagen.FileName, rutaFotosPerfil);
 
                 try
                 {
@@ -87,7 +87,7 @@ namespace pruebaFirebase.Controllers
                 if (!string.IsNullOrEmpty(nombreArchivo))
                 {
                     // Llama a EliminarArchivo con solo el nombre del archivo limpio
-                    await _filesHelper.EliminarArchivo(nombreArchivo);
+                    await _filesHelper.EliminarArchivo(nombreArchivo, rutaFotosPerfil);
                 }
                 _context.Peliculas.Remove(pelicula);
             }
