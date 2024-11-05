@@ -19,7 +19,7 @@ namespace pruebaFirebase.Helpers
         //api_key es la clave de API necesaria para autenticarse con Firebase.
         private string api_key = "AIzaSyBlNIZhQMJv_7KUX3iUHzJ87cpbmywJ5rg";
 
-        public async Task<string> SubirArchivo(Stream archivo, string nombre, string ruta)
+        public async Task<string> SubirArchivo(Stream archivo, string nombre, string rutaGuardado)
         {           
             //Se crea una instancia de FirebaseAuthProvider utilizando la clave de API proporcionada.
             var auth = new FirebaseAuthProvider(new FirebaseConfig(api_key));
@@ -43,7 +43,7 @@ namespace pruebaFirebase.Helpers
                 //Se especifica una ubicación dentro del almacenamiento de Firebase donde se desea cargar el archivo.
                 //En este caso, se utiliza la ruta "Fotos_Peliculas" y el nombre del archivo
                 //se espera que esté en la variable nombre.
-                .Child(ruta)
+                .Child(rutaGuardado)
                 .Child(nombre)
 
                 //Se utiliza PutAsync para cargar el archivo especificado (archivo) a la ubicación de
@@ -59,7 +59,7 @@ namespace pruebaFirebase.Helpers
             return downloadURL;
 
         }
-        public async Task<bool> EliminarArchivo(string nombre, string ruta)
+        public async Task<bool> EliminarArchivo(string nombre, string rutaGuardado)
         {
             var auth = new FirebaseAuthProvider(new FirebaseConfig(api_key));
             var a = await auth.SignInWithEmailAndPasswordAsync(email, clave);
@@ -73,7 +73,7 @@ namespace pruebaFirebase.Helpers
                     {
                         AuthTokenAsyncFactory = () => Task.FromResult(a.FirebaseToken),
                     })
-                    .Child(ruta)
+                    .Child(rutaGuardado)
                     .Child(nombre);
 
                 // Llamamos al método DeleteAsync para eliminar el archivo
