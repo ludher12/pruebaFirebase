@@ -1,6 +1,7 @@
 ﻿
 using Firebase.Auth;
 using Firebase.Storage;
+using System.Net.Http;
 
 namespace pruebaFirebase.Helpers
 {
@@ -85,6 +86,40 @@ namespace pruebaFirebase.Helpers
                 Console.WriteLine($"Error al eliminar el archivo: {ex.Message}");
                 return false; // Hubo un error al eliminar el archivo
             }
+        }
+
+        public async Task<Stream> DescargarArchivo(string nombre, string rutaCompleta)
+        {
+            var auth = new FirebaseAuthProvider(new FirebaseConfig(api_key));
+            var a = await auth.SignInWithEmailAndPasswordAsync(email, clave);
+
+            // Obtener la URL de descarga del archivo
+            var downloadUrl = await new FirebaseStorage(
+                "imlat-5bbfa.appspot.com",
+                new FirebaseStorageOptions
+                {
+                    AuthTokenAsyncFactory = () => Task.FromResult(a.FirebaseToken),
+                    ThrowOnCancel = true
+                })
+                .Child(rutaCompleta)
+                .Child(nombre)
+                .GetDownloadUrlAsync();
+
+            // Descargar el archivo usando HttpClient
+            using var httpClient = new HttpClient();
+            var response = await httpClient.GetAsync(downloadUrl);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception($"No se pudo descargar el archivo: {response.ReasonPhrase}");
+            }
+
+            return await response.Content.ReadAsStreamAsync();
+        }
+
+        public Task<string> DescargarCarpetaComoZip(string rutaCompleta)
+        {
+            throw new NotImplementedException();
         }
     }
 }
