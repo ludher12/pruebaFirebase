@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using pruebaFirebase.Helpers;
 using pruebaFirebase.Models;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace pruebaFirebase.Controllers
 {
@@ -72,18 +73,7 @@ namespace pruebaFirebase.Controllers
             var pelicula = await _context.Peliculas.FindAsync(id);
             
             if (pelicula != null) {
-                var urlImagen = pelicula.UrlImagen;
-                // Extrae solo el nombre del archivo (por ejemplo, "lucario.png") usando una expresión regular
-                // Extrae solo el nombre del archivo usando expresión regular y quita prefijos como "Fotos_Perfil%2F"
-                var regex = new System.Text.RegularExpressions.Regex(@"([^/]+)$");
-                var match = regex.Match(urlImagen);
-                var nombreArchivo = match.Success ? match.Value.Split('?')[0] : null;
-
-                // Decodifica el nombre del archivo y elimina cualquier prefijo
-                if (nombreArchivo != null && nombreArchivo.Contains("%2F"))
-                {
-                    nombreArchivo = Uri.UnescapeDataString(nombreArchivo.Split(new[] { "%2F" }, StringSplitOptions.None).Last());
-                }
+                string nombreArchivo = GetNameArchivo(pelicula.UrlImagen);
                 if (!string.IsNullOrEmpty(nombreArchivo))
                 {
                     // Llama a EliminarArchivo con solo el nombre del archivo limpio
@@ -95,5 +85,45 @@ namespace pruebaFirebase.Controllers
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
+
+        public async Task<IActionResult> DescargarArchivo(int id)
+        {
+            var pelicula = await _context.Peliculas.FindAsync(id);
+
+            if (pelicula != null)
+            {
+                string nombreArchivo = GetNameArchivo(pelicula.UrlImagen);
+
+                if (!string.IsNullOrEmpty(nombreArchivo))
+                {
+                    // Llama a EliminarArchivo con solo el nombre del archivo limpio
+                    var stream = await _filesHelper.DescargarArchivo(nombreArchivo, rutaFotosPerfil);
+                    return File(stream, "application/octet-stream", nombreArchivo);
+                }
+                else {
+                    return View("Error");
+                }
+            }
+            else { 
+                return NotFound();
+            }
+
+        }
+
+        public string GetNameArchivo(string? urlArchivo) {
+            if (urlArchivo == null)
+            {
+                return string.Empty;
+            }
+            var regex = new System.Text.RegularExpressions.Regex(@"([^/]+)$");
+            var match = regex.Match(urlArchivo);
+            var nombreArchivo = match.Success ? match.Value.Split('?')[0] : null;
+            if (nombreArchivo != null && nombreArchivo.Contains("%2F"))
+            {
+                nombreArchivo = Uri.UnescapeDataString(nombreArchivo.Split(new[] { "%2F" }, StringSplitOptions.None).Last());
+            }
+            return nombreArchivo;
+        }
+
     }
 }
