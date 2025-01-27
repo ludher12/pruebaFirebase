@@ -1,7 +1,7 @@
 ﻿
 using Firebase.Auth;
 using Firebase.Storage;
-using System.Net.Http;
+using System.IO.Compression;
 
 namespace pruebaFirebase.Helpers
 {
@@ -117,9 +117,75 @@ namespace pruebaFirebase.Helpers
             return await response.Content.ReadAsStreamAsync();
         }
 
-        public Task<string> DescargarCarpetaComoZip(string rutaCompleta)
+        public async Task<Stream> DescargarArchivosComoZip(List<(string carpeta, string nombre)> archivos)
         {
-            throw new NotImplementedException();
+            var auth = new FirebaseAuthProvider(new FirebaseConfig(api_key));
+            var a = await auth.SignInWithEmailAndPasswordAsync(email, clave);
+
+            // Creamos un MemoryStream donde guardaremos el ZIP.
+            var zipStream = new MemoryStream();
+            using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, true))
+            {
+                foreach (var archivo in archivos)
+                {
+                    var carpeta = archivo.carpeta; // Ruta del archivo en Firebase
+                    var nombre = archivo.nombre; // Nombre del archivo para guardarlo en el ZIP
+
+                    // Obtener la URL de descarga del archivo.
+                    var downloadUrl = await new FirebaseStorage(
+                        ruta,
+                        new FirebaseStorageOptions
+                        {
+                            AuthTokenAsyncFactory = () => Task.FromResult(a.FirebaseToken),
+                            ThrowOnCancel = true
+                        })
+                        .Child(carpeta)
+                        .Child(nombre)
+                        .GetDownloadUrlAsync();
+
+                    // Descargar el archivo usando HttpClient
+                    using var httpClient = new HttpClient();
+                    var response = await httpClient.GetAsync(downloadUrl);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        // Obtener el archivo como un Stream
+                        using var fileStream = await response.Content.ReadAsStreamAsync();
+
+                        // Crear una nueva entrada en el archivo ZIP
+                        var zipEntry = archive.CreateEntry(nombre, CompressionLevel.Fastest);
+
+                        // Copiar el archivo descargado al ZIP
+                        using var entryStream = zipEntry.Open();
+                        await fileStream.CopyToAsync(entryStream);
+                    }
+                    else
+                    {
+                        throw new Exception($"No se pudo descargar el archivo {nombre}: {response.ReasonPhrase}");
+                    }
+                }
+            }
+
+            // Reiniciar el puntero del MemoryStream antes de retornarlo
+            zipStream.Position = 0;
+            return zipStream;
         }
+
+        public string GetNameArchivo(string? urlArchivo)
+        {
+            if (urlArchivo == null|| urlArchivo.Equals(string.Empty))
+            {
+                return string.Empty;
+            }
+            var regex = new System.Text.RegularExpressions.Regex(@"([^/]+)$");
+            var match = regex.Match(urlArchivo);
+            var nombreArchivo = match.Success ? match.Value.Split('?')[0] : null;
+            if (nombreArchivo != null && nombreArchivo.Contains("%2F"))
+            {
+                nombreArchivo = Uri.UnescapeDataString(nombreArchivo.Split(new[] { "%2F" }, StringSplitOptions.None).Last());
+            }
+            return nombreArchivo;
+        }
+
     }
 }
