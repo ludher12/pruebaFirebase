@@ -10,7 +10,7 @@ namespace pruebaFirebase.Controllers
     {
         private readonly Models.ApplicationDbContext _context;
         private readonly IFilesHelper _filesHelper;
-        private const string rutaFotosPerfil = "Fotos_Perfil";
+        private const string rutaFotosPerfil = "ejemplo/ejemplo";
         public PeliculaController(Models.ApplicationDbContext context, IFilesHelper filesHelper)
         {
             _context = context;
@@ -110,6 +110,7 @@ namespace pruebaFirebase.Controllers
 
         }
 
+        //Metodo para hacer la limpieza del nombre del archivo
         public string GetNameArchivo(string? urlArchivo) {
             if (urlArchivo == null)
             {
@@ -124,6 +125,24 @@ namespace pruebaFirebase.Controllers
             }
             return nombreArchivo;
         }
+
+        public async Task<IActionResult> DescargarMultiplesArchivosZip()
+        {
+            List<(string ruta, string nombre)> archivos = new List<(string, string)>
+            {
+                (rutaFotosPerfil, "Deigo lopes.jpg"),
+                (rutaFotosPerfil, "max Holloway.jpg"),
+                (rutaFotosPerfil, "Islam.jpg"), // archivo1.jpg en otra carpeta
+                // Añadir más archivos si es necesario
+            };
+
+            var filesHelper = new FilesHelper();
+            var zipStream = await filesHelper.DescargarArchivosComoZip(archivos);
+
+            return File(zipStream, "application/zip", "Fotos.zip");
+        }
+
+
 
     }
 }
